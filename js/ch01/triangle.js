@@ -26,9 +26,9 @@ window.onload = function init(){
 		 0.5, -0.5*/
 	];
 	var colors = [
-		1.0,1.0,1.0,1.0,
-		0.4,0.5,0.6,1.0,
-		0.8,0.6,0.1,1.0,
+		1.0,0.0,0.0,1.0,
+		0.0,0.0,1.0,1.0,
+		0.0,1.0,0.0,1.0,
 	]
 	// Configure WebGL
 	gl.viewport( 0, 0, canvas.width, canvas.height );
