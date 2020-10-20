@@ -12,7 +12,7 @@ var thetaLoc2;
 var direction = 1;
 var direction2 = 1;
 var speed = 50;
-var speed2 = 1;
+var speed2 = 100;
 
 function changeDir(){
 	direction *= -1;
