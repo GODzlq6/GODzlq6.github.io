@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Chap3 Demo -- Rotating Square Slider</title>
+    <script id="rot-v-shader" type="x-shader/x-vertex">
+	attribute vec4 vPosition;
+	uniform float theta;
+
+	void main()
+	{
+		float u = cos( theta );
+		float v = sin( theta );
+
+		gl_Position.x = vPosition.x * u - vPosition.y * v;
+		gl_Position.y = vPosition.x * v + vPosition.y * u;
+		gl_Position.z = 0.0;
+		gl_Position.w = 1.0;
+	}
+	</script>
+
+    <script id="rot-f-shader" type="x-shader/x-fragment">
+	precision mediump float;
+
+	void main()
+	{
+		gl_FragColor = vec4( 1.0, 0.0, 0.0, 1.0 );
+	}
+	</script>
+	
+	<script id="rot-v-shader2" type="x-shader/x-vertex">
+		attribute vec4 vPosition;
+		uniform float theta2;
+		void main(){
+			 // gl_Position.x = vPosition.x + theta;
+			 //  gl_Position = vPosition;
+			 // gl_Position.z = 0.0;
+			 // gl_Position.w = 1.0;
+			 float u = cos( theta2 );
+			 
+			 gl_Position.y = vPosition.y;
+				 
+			 
+			 gl_Position.x = vPosition.x+u; 
+			 gl_Position.z = 0.0;
+			 gl_Position.w = 1.0;
+		}
+	</script>
+	
+	<script id="rot-f-shader2" type="x-shader/x-fragment">
+		precision mediump float;
+		void main(){
+			if(gl_FragCoord.y <77.0){
+				gl_FragColor = vec4(0.10, 0.1, 0.0, 1.0);
+			}
+			else if(gl_FragCoord.y >=250.0 ){
+				gl_FragColor = vec4(0.0, 1.0, 0.0, 1.0);
+			} 
+			else{
+				gl_FragColor = vec4(0.18, 0.1, 0.0, 1.0);
+			}
+		}
+	</script>
+
+    <script type="text/javascript" src="../js/common/webgl-utils.js"></script>
+    <script type="text/javascript" src="../js/common/initShaders.js"></script>
+    <script type="text/javascript" src="../js/common/gl-matrix-min.js"></script>
+
+    <script type="text/javascript" src="../js/ch03/rotsquareslider.js"></script>
+</head>
+
+<body onload="initRotSquare()">
+    <h1>Control rotation using Menus</h1><br>
+    <canvas id="rot-canvas" width="512" height="512">你的浏览器不支持HTML5 canvas元素</canvas>
+    <fieldset>
+        <legend>转动控制</legend>
+        <button id="direction" onclick="changeDir()">换个转动方向</button><br>
+        Speed <input type="text" id="speedcon" min="0" max="100" value="50" step="10"> 
+		<input type="button" id="queding" value="确定">
+    </fieldset>
+	
+	<canvas id="canvas2" width="512" height="512">你的浏览器不支持HTML5 canvas元素</canvas>
+	<fieldset>
+	    <legend>移动控制</legend>
+	    Speed2<input type="range" id="speedcon2" min="0" max="100" value="100" step="10"> 
+		<input type="button" id="queding2" value="确定">
+	</fieldset>
+</body>
+
+</html>
