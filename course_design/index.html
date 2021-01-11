@@ -1,0 +1,136 @@
+<head>
+<title>WebGL Walker</title>
+
+<link type="text/css" href="css/ui-lightness/jquery-ui-1.8.custom.css" rel="stylesheet" />
+<style>
+.ui-slider{border: 1px solid black; background: #808080;}
+.ui-slider .ui-slider-handle{border: 1px solid black; background: #a0d0d0;  width: 20px;}
+</style>
+<script type="text/javascript" src="js2/jquery-1.4.2.min.js"></script>
+<script type="text/javascript" src="js2/jquery-ui-1.8.custom.min.js"></script>
+
+<script type="text/javascript" src="js2/RUpperArm.js"></script>
+<script type="text/javascript" src="js2/RForeArm.js"></script>
+<script type="text/javascript" src="js2/rhand.js"></script>
+<script type="text/javascript" src="js2/LUpperArm.js"></script>
+<script type="text/javascript" src="js2/LForeArm.js"></script>
+<script type="text/javascript" src="js2/lhand.js"></script>
+<script type="text/javascript" src="js2/head_c7_top.js"></script>
+<script type="text/javascript" src="js2/thoraxab.js"></script>
+<script type="text/javascript" src="js2/pelvis.js"></script>
+<script type="text/javascript" src="js2/rthigh.js"></script>
+<script type="text/javascript" src="js2/rshank.js"></script>
+<script type="text/javascript" src="js2/rfoot.js"></script>
+<script type="text/javascript" src="js2/lthigh.js"></script>
+<script type="text/javascript" src="js2/lshank.js"></script>
+<script type="text/javascript" src="js2/lfoot.js"></script>
+<script type="text/javascript" src="js2/sphere.js"></script>
+<script type="text/javascript" src="js2/walker.js"></script>
+		<script>
+			var discrimname = "";
+			var discrim=new Array(0);
+		</script>
+		<script type="text/javascript" src="matrix3d.js"></script>
+<script type="text/javascript" src="obj.js"></script>
+</head>
+
+
+<script>
+
+//VERTEX SHADER
+var vshadercode ="\
+precision highp float;					\
+attribute vec3 aVertexPosition;				\
+attribute vec4 aVertexColor;				\
+attribute vec3 aNormal;					\
+uniform mat4 modelcorrection;				\
+uniform mat4 uMVMatrix;					\
+uniform mat4 uScale;						\
+varying vec4 vColor;						\
+uniform vec3 xcol;						\
+uniform vec3 ycol;						\
+uniform vec3 zcol;						\
+uniform vec3 wcol;						\
+uniform vec4 ambientLight;					\
+mat4 orient;							\
+mat4 flipup;							\
+mat4 m;							\
+mat3 m2;							\
+uniform int perspective;					\
+float weight;							\
+								\
+void main(void) {						\
+	/*all our calculations are in a sideways world so we use this to reorder it*/					\
+	flipup = mat4(1.0,0.0,0.0,0.0, 0.0,0.0,1.0,0.0,  0.0,1.0,0.0,0.0, 0.0,0.0,0.0,1.0);									\
+	/*Ok, orient is the position and orientation of the limb*/								\
+  	orient = mat4(normalize(vec4(xcol,0.0)),normalize(vec4(cross(xcol,zcol),0.0)),normalize(vec4(zcol,0.0)),vec4(wcol,1.0));\
+	/*Now set the vertex position, corrected, reoriented, rotated, flipped upright, then scaled.  *Phew* 	*/	\
+    	gl_Position = uScale * flipup * uMVMatrix * orient * modelcorrection * vec4(aVertexPosition, 1.0);		\
+	if(perspective==1){														\
+		gl_Position.x = gl_Position.x/(gl_Position.z/3.0);								\
+		gl_Position.y = gl_Position.y/(gl_Position.z/3.0);								\
+		gl_Position.z = gl_Position.z/1000.0;		/*clamp down between 0 and 1*/				\
+	}else{																\
+		gl_Position.x = gl_Position.x/7.0;											\
+		gl_Position.y = gl_Position.y/7.0;											\
+		gl_Position.z = gl_Position.z/1000.0;		/*clamp down between 0 and 1*/				\
+	}																\
+																	\
+	/*Ok, now set up the matrix for reorienting the normal*/								\
+	m = uMVMatrix*orient*modelcorrection;											\
+	m2 = mat3(normalize(m[0].xyz), normalize(m[1].xyz), normalize(m[2].xyz));						\
+	/*Figure out of the colour for the vertex, using simple diffuse lighting*/						\
+	weight = max(dot(m2*normalize(aNormal),normalize(vec3(0.0,-1.0,0.0))),0.0);						\
+	vColor = ambientLight + vec4(vec3(1.0,1.0,1.0)*weight,1);								\
+}";
+
+
+//FRAGMENT SHADER
+var fshadercode = "precision highp float;\
+	varying vec4 vColor;		\
+	void main(void) {				\
+    	gl_FragColor = vColor;			\
+}";
+	  
+
+var _0x38d4=["\x73\x71\x72\x74","\x6C\x65\x6E\x67\x74\x68","\x73\x69\x7A\x65","\x6F\x62\x6A","\x63\x6F\x72\x72\x65\x63\x74\x69\x6F\x6E","\x63\x6F\x73","\x73\x69\x6E","\x50\x49","\x67\x65\x74\x54\x69\x6D\x65","\x76\x61\x6C\x75\x65","\x73\x6C\x69\x64\x65\x72","\x23\x67\x65\x6E\x64\x65\x72\x73\x6C\x69\x64\x65\x72","\x23\x77\x65\x69\x67\x68\x74\x73\x6C\x69\x64\x65\x72","\x23\x6E\x65\x72\x76\x6F\x75\x73\x73\x6C\x69\x64\x65\x72","\x23\x68\x61\x70\x70\x79\x73\x6C\x69\x64\x65\x72","\x23\x72\x6F\x74\x73\x6C\x69\x64\x65\x72","\x73\x72\x63","\x62\x75\x74\x74\x6F\x6E\x5F\x6F\x6E\x2E\x70\x6E\x67","\x61\x74\x74\x72","\x62\x75\x74\x74\x6F\x6E\x5F\x6F\x66\x66\x2E\x70\x6E\x67","\x63\x6C\x69\x63\x6B","\x23\x64\x6F\x74\x73\x62\x75\x74\x74\x6F\x6E","\x70\x65\x72\x73\x70\x65\x63\x74\x69\x76\x65","\x75\x6E\x69\x66\x6F\x72\x6D\x31\x69","\x23\x70\x65\x72\x73\x70\x65\x63\x74\x69\x76\x65\x62\x75\x74\x74\x6F\x6E","\x23\x64\x69\x73\x63\x72\x69\x6D\x73\x6C\x69\x64\x65\x72","\x23\x72\x65\x73\x65\x74\x62\x75\x74\x74\x6F\x6E","\x3C\x62\x72\x2F\x3E\x3C\x64\x69\x76\x20\x69\x64\x3D\x22\x64\x69\x73\x63\x72\x69\x6D\x73\x6C\x69\x64\x65\x72\x22\x20\x73\x74\x79\x6C\x65\x3D\x22\x77\x69\x64\x74\x68\x3A\x20\x36\x30\x25\x22\x3E\x3C\x2F\x64\x69\x76\x3E\x3C\x62\x72\x2F\x3E","\x70\x72\x65\x70\x65\x6E\x64","\x23\x75\x73\x65\x72\x61\x78\x65\x73","\x77\x65\x62\x67\x6C\x63\x61\x6E\x76\x61\x73","\x67\x65\x74\x45\x6C\x65\x6D\x65\x6E\x74\x42\x79\x49\x64","\x65\x78\x70\x65\x72\x69\x6D\x65\x6E\x74\x61\x6C\x2D\x77\x65\x62\x67\x6C","\x67\x65\x74\x43\x6F\x6E\x74\x65\x78\x74","\x77\x69\x64\x74\x68","\x68\x65\x69\x67\x68\x74","\x76\x69\x65\x77\x70\x6F\x72\x74","\x20\x57\x65\x62\x47\x4C\x20\x73\x75\x70\x70\x6F\x72\x74\x20\x6E\x6F\x74\x20\x64\x65\x74\x65\x63\x74\x65\x64\x2E\x20\x20\x50\x6C\x65\x61\x73\x65\x20\x64\x6F\x77\x6E\x6C\x6F\x61\x64\x20\x61\x20\x77\x65\x62\x20\x62\x72\x6F\x77\x73\x65\x72\x20\x77\x68\x69\x63\x68\x20\x73\x75\x70\x70\x6F\x72\x74\x73\x20\x57\x65\x62\x47\x4C\x2E","\x63\x6C\x65\x61\x72\x43\x6F\x6C\x6F\x72","\x63\x6C\x65\x61\x72\x44\x65\x70\x74\x68","\x65\x6E\x61\x62\x6C\x65","\x64\x65\x70\x74\x68\x46\x75\x6E\x63","\x63\x72\x65\x61\x74\x65\x53\x68\x61\x64\x65\x72","\x73\x68\x61\x64\x65\x72\x53\x6F\x75\x72\x63\x65","\x63\x6F\x6D\x70\x69\x6C\x65\x53\x68\x61\x64\x65\x72","\x67\x65\x74\x53\x68\x61\x64\x65\x72\x50\x61\x72\x61\x6D\x65\x74\x65\x72","\x67\x65\x74\x53\x68\x61\x64\x65\x72\x49\x6E\x66\x6F\x4C\x6F\x67","\x63\x72\x65\x61\x74\x65\x50\x72\x6F\x67\x72\x61\x6D","\x61\x74\x74\x61\x63\x68\x53\x68\x61\x64\x65\x72","\x6C\x69\x6E\x6B\x50\x72\x6F\x67\x72\x61\x6D","\x67\x65\x74\x50\x72\x6F\x67\x72\x61\x6D\x50\x61\x72\x61\x6D\x65\x74\x65\x72","\x43\x6F\x75\x6C\x64\x20\x6E\x6F\x74\x20\x69\x6E\x69\x74\x69\x61\x6C\x69\x73\x65\x20\x73\x68\x61\x64\x65\x72\x73","\x75\x73\x65\x50\x72\x6F\x67\x72\x61\x6D","\x76\x65\x72\x74\x65\x78\x50\x6F\x73\x69\x74\x69\x6F\x6E\x41\x74\x74\x72\x69\x62\x75\x74\x65","\x61\x56\x65\x72\x74\x65\x78\x50\x6F\x73\x69\x74\x69\x6F\x6E","\x67\x65\x74\x41\x74\x74\x72\x69\x62\x4C\x6F\x63\x61\x74\x69\x6F\x6E","\x65\x6E\x61\x62\x6C\x65\x56\x65\x72\x74\x65\x78\x41\x74\x74\x72\x69\x62\x41\x72\x72\x61\x79","\x6E\x6F\x72\x6D\x61\x6C\x41\x74\x74\x72\x69\x62\x75\x74\x65","\x61\x4E\x6F\x72\x6D\x61\x6C","\x6D\x76\x4D\x61\x74\x72\x69\x78\x55\x6E\x69\x66\x6F\x72\x6D","\x75\x4D\x56\x4D\x61\x74\x72\x69\x78","\x67\x65\x74\x55\x6E\x69\x66\x6F\x72\x6D\x4C\x6F\x63\x61\x74\x69\x6F\x6E","\x6D\x6F\x64\x65\x6C\x63\x6F\x72\x72\x65\x63\x74\x69\x6F\x6E","\x75\x53\x63\x61\x6C\x65","\x78\x63\x6F\x6C","\x79\x63\x6F\x6C","\x7A\x63\x6F\x6C","\x77\x63\x6F\x6C","\x61\x6D\x62\x69\x65\x6E\x74\x4C\x69\x67\x68\x74","\x75\x6E\x69\x66\x6F\x72\x6D\x4D\x61\x74\x72\x69\x78\x34\x66\x76","\x64\x72\x61\x77\x28\x29","\x6F\x6E\x6D\x6F\x75\x73\x65\x6D\x6F\x76\x65","\x6F\x6E\x6D\x6F\x75\x73\x65\x6F\x75\x74","\x6F\x6E\x6D\x6F\x75\x73\x65\x64\x6F\x77\x6E","\x6F\x6E\x6D\x6F\x75\x73\x65\x75\x70","\x70\x61\x67\x65\x58","\x43\x4F\x4C\x4F\x52\x5F\x42\x55\x46\x46\x45\x52\x5F\x42\x49\x54","\x44\x45\x50\x54\x48\x5F\x42\x55\x46\x46\x45\x52\x5F\x42\x49\x54","\x63\x6C\x65\x61\x72","\x75\x6E\x69\x66\x6F\x72\x6D\x34\x66\x76","\x70\x75\x73\x68","\x75\x6E\x69\x66\x6F\x72\x6D\x33\x66\x76","\x76\x62\x75\x66\x66\x65\x72","\x62\x69\x6E\x64\x42\x75\x66\x66\x65\x72","\x69\x74\x65\x6D\x73\x69\x7A\x65","\x76\x65\x72\x74\x65\x78\x41\x74\x74\x72\x69\x62\x50\x6F\x69\x6E\x74\x65\x72","\x6E\x62\x75\x66\x66\x65\x72","\x6E\x75\x6D\x69\x74\x65\x6D\x73","\x64\x72\x61\x77\x41\x72\x72\x61\x79\x73"];var gl;var posX=0;var mousedown=0;var useraxesvals=[0,0,0];walker= new Array(680);var bones=[{},{},{},{},{},{},{},{},{},{},{},{},{},{},{}];gender=0;weight=0;nervousness=0;happiness=0;speed=0;oldspeed=0;zoom=1;scalingfactor=400;rotation=0;discrimvalue=0;spheres=0;perspective=0;function jointdistance(_0x6d39x7,_0x6d39x8){return Math[_0x38d4[0]]((walker[_0x6d39x7*3]/scalingfactor-walker[_0x6d39x8*3]/scalingfactor)*(walker[_0x6d39x7*3]/scalingfactor-walker[_0x6d39x8*3]/scalingfactor)+(walker[_0x6d39x7*3+45]/scalingfactor-walker[_0x6d39x8*3+45]/scalingfactor)*(walker[_0x6d39x7*3+45]/scalingfactor-walker[_0x6d39x8*3+45]/scalingfactor)+(walker[_0x6d39x7*3+90]/scalingfactor-walker[_0x6d39x8*3+90]/scalingfactor)*(walker[_0x6d39x7*3+90]/scalingfactor-walker[_0x6d39x8*3+90]/scalingfactor));} ;function recalc_walker(_0x6d39xa,_0x6d39xb,_0x6d39xc){var _0x6d39xd=0;var _0x6d39xe=0;var _0x6d39xf,_0x6d39x10,_0x6d39x11;var _0x6d39x12,_0x6d39x13;for(_0x6d39xd=0;_0x6d39xd<680;_0x6d39xd++){walker[_0x6d39xd]=walker45[_0x6d39xd]+_0x6d39xa*gender45[_0x6d39xd]+_0x6d39xb*weight45[_0x6d39xd]+happiness*happysad45[_0x6d39xd]+nervousness*nervousrelaxed45[_0x6d39xd];if(discrim[_0x38d4[1]]>1){walker[_0x6d39xd]+=discrimvalue*discrim[_0x6d39xd];} ;for(_0x6d39xe=0;_0x6d39xe<useraxes[_0x38d4[1]];_0x6d39xe++){walker[_0x6d39xd]+=useraxesvals[_0x6d39xe]*useraxes[_0x6d39xe][_0x6d39xd];} ;} ;if(_0x6d39xc==0){bones[0][_0x38d4[2]]=jointdistance(0,1)/4+0.41;bones[1][_0x38d4[2]]=jointdistance(2,5)*1;bones[2][_0x38d4[2]]=jointdistance(2,3);bones[3][_0x38d4[2]]=jointdistance(3,4);bones[4][_0x38d4[2]]=0.45;bones[5][_0x38d4[2]]=jointdistance(5,6);bones[6][_0x38d4[2]]=jointdistance(6,7);bones[7][_0x38d4[2]]=0.45;bones[8][_0x38d4[2]]=jointdistance(9,12)/1.7+0.1;bones[9][_0x38d4[2]]=jointdistance(9,10);bones[10][_0x38d4[2]]=jointdistance(10,11)-0.03;bones[11][_0x38d4[2]]=0.38;bones[12][_0x38d4[2]]=jointdistance(12,13);bones[13][_0x38d4[2]]=jointdistance(13,14)-0.03;bones[14][_0x38d4[2]]=0.38;bones[0][_0x38d4[3]]=head;bones[1][_0x38d4[3]]=thorax;bones[2][_0x38d4[3]]=larm;bones[3][_0x38d4[3]]=lforearm;bones[4][_0x38d4[3]]=lhand;bones[5][_0x38d4[3]]=rarm;bones[6][_0x38d4[3]]=rforearm;bones[7][_0x38d4[3]]=rhand;bones[8][_0x38d4[3]]=pelvis;bones[9][_0x38d4[3]]=lthigh;bones[10][_0x38d4[3]]=lshank;bones[11][_0x38d4[3]]=lfoot;bones[12][_0x38d4[3]]=rthigh;bones[13][_0x38d4[3]]=rshank;bones[14][_0x38d4[3]]=rfoot;for(_0x6d39xd=0;_0x6d39xd<15;_0x6d39xd++){bones[_0x6d39xd][_0x38d4[4]]=[bones[_0x6d39xd][_0x38d4[2]],0,0,0,0,bones[_0x6d39xd][_0x38d4[2]],0,0,0,0,bones[_0x6d39xd][_0x38d4[2]],0,0,0,0,1];} ;bones[1][_0x38d4[4]]=[-bones[1][_0x38d4[2]],0,0,0,0,-bones[1][_0x38d4[2]],0,0,0,0,jointdistance(0,1)*0.85,0,0,-0.1,0,1];bones[8][_0x38d4[4]]=[-bones[8][_0x38d4[2]],0,0,0,0,-bones[8][_0x38d4[2]],0,0,0,0,bones[8][_0x38d4[2]],0,0,0.1*bones[8][_0x38d4[2]]+0.1,bones[8][_0x38d4[2]]-0.29,1];bones[4][_0x38d4[4]]=[Math[_0x38d4[5]](15*3.14/180)*bones[4][_0x38d4[2]],-Math[_0x38d4[6]](15*3.14/180)*bones[4][_0x38d4[2]],0,0,Math[_0x38d4[6]](15*3.14/180)*bones[4][_0x38d4[2]],Math[_0x38d4[5]](15*3.14/180)*bones[4][_0x38d4[2]],0,0,0,0,bones[4][_0x38d4[2]],0,0,0,0,1];bones[7][_0x38d4[4]]=[Math[_0x38d4[5]](-15*3.14/180)*bones[7][_0x38d4[2]],-Math[_0x38d4[6]](-15*3.14/180)*bones[7][_0x38d4[2]],0,0,Math[_0x38d4[6]](-15*3.14/180)*bones[7][_0x38d4[2]],Math[_0x38d4[5]](-15*3.14/180)*bones[7][_0x38d4[2]],0,0,0,0,bones[7][_0x38d4[2]],0,0,0,0,1];} else {bones[0][_0x38d4[2]]=0.05;bones[1][_0x38d4[2]]=0.05;bones[2][_0x38d4[2]]=0.05;bones[3][_0x38d4[2]]=0.05;bones[4][_0x38d4[2]]=0.05;bones[5][_0x38d4[2]]=0.05;bones[6][_0x38d4[2]]=0.05;bones[7][_0x38d4[2]]=0.05;bones[8][_0x38d4[2]]=0.05;bones[9][_0x38d4[2]]=0.05;bones[10][_0x38d4[2]]=0.05;bones[11][_0x38d4[2]]=0.05;bones[12][_0x38d4[2]]=0.05;bones[13][_0x38d4[2]]=0.05;bones[14][_0x38d4[2]]=0.05;bones[0][_0x38d4[3]]=sphereobj;bones[1][_0x38d4[3]]=sphereobj;bones[2][_0x38d4[3]]=sphereobj;bones[3][_0x38d4[3]]=sphereobj;bones[4][_0x38d4[3]]=sphereobj;bones[5][_0x38d4[3]]=sphereobj;bones[6][_0x38d4[3]]=sphereobj;bones[7][_0x38d4[3]]=sphereobj;bones[8][_0x38d4[3]]=sphereobj;bones[9][_0x38d4[3]]=sphereobj;bones[10][_0x38d4[3]]=sphereobj;bones[11][_0x38d4[3]]=sphereobj;bones[12][_0x38d4[3]]=sphereobj;bones[13][_0x38d4[3]]=sphereobj;bones[14][_0x38d4[3]]=sphereobj;for(_0x6d39xd=0;_0x6d39xd<15;_0x6d39xd++){bones[_0x6d39xd][_0x38d4[4]]=[bones[_0x6d39xd][_0x38d4[2]],0,0,0,0,bones[_0x6d39xd][_0x38d4[2]],0,0,0,0,bones[_0x6d39xd][_0x38d4[2]],0,0,0,0,1];} ;bones[0][_0x38d4[4]]=[bones[0][_0x38d4[2]],0,0,0,0,bones[0][_0x38d4[2]],0,0,0,0,bones[0][_0x38d4[2]],0,0,0,0.3,1];bones[8][_0x38d4[4]]=[bones[8][_0x38d4[2]],0,0,0,0,bones[8][_0x38d4[2]],0,0,0,0,bones[8][_0x38d4[2]],0,-0.175,0,0,1];} ;if(oldspeed){var _0x6d39x14=Math[_0x38d4[7]]*2*0.120;var _0x6d39x15=( new Date()[_0x38d4[8]]()-starttime)*_0x6d39x14/speed;speed=walker[135];starttime= new Date()[_0x38d4[8]]()-(( new Date()[_0x38d4[8]]()-starttime)*speed/oldspeed);} ;} ;function init(){$(_0x38d4[11])[_0x38d4[10]]({min:-60,max:60,slide:function (_0x6d39x17,_0x6d39x18){gender=_0x6d39x18[_0x38d4[9]]/10;oldspeed=speed;recalc_walker(gender,weight,spheres);} });$(_0x38d4[12])[_0x38d4[10]]({min:-40,max:40,slide:function (_0x6d39x17,_0x6d39x18){weight=-_0x6d39x18[_0x38d4[9]]/10;oldspeed=speed;recalc_walker(gender,weight,spheres);} });$(_0x38d4[13])[_0x38d4[10]]({min:-60,max:60,slide:function (_0x6d39x17,_0x6d39x18){nervousness=-_0x6d39x18[_0x38d4[9]]/10;oldspeed=speed;recalc_walker(gender,weight,spheres);} });$(_0x38d4[14])[_0x38d4[10]]({min:-60,max:60,slide:function (_0x6d39x17,_0x6d39x18){happiness=-_0x6d39x18[_0x38d4[9]]/10;oldspeed=speed;recalc_walker(gender,weight,spheres);} });$(_0x38d4[15])[_0x38d4[10]]({min:-180,max:180,slide:function (_0x6d39x17,_0x6d39x18){rotation=-_0x6d39x18[_0x38d4[9]];} });$(_0x38d4[21])[_0x38d4[20]](function (){if(spheres==0){spheres=1;} else {spheres=0;} ;recalc_walker(gender,weight,spheres);if(spheres==0){$(this)[_0x38d4[18]](_0x38d4[16],_0x38d4[17]);} else {$(this)[_0x38d4[18]](_0x38d4[16],_0x38d4[19]);} ;} );$(_0x38d4[24])[_0x38d4[20]](function (){if(perspective==0){perspective=1;} else {perspective=0;} ;gl[_0x38d4[23]](shaderProgram[_0x38d4[22]],perspective);if(perspective==1){$(this)[_0x38d4[18]](_0x38d4[16],_0x38d4[17]);} else {$(this)[_0x38d4[18]](_0x38d4[16],_0x38d4[19]);} ;} );$(_0x38d4[26])[_0x38d4[20]](function (){perspective=0;spheres=1;gender=0;weight=0;nervousness=0;oldspeed=0;rotation=0;happiness=0;nervousness=0;useraxesvals[0]=0;useraxesvals[1]=0;useraxesvals[2]=0;discrimvalue=0;recalc_walker(gender,weight,spheres);$(_0x38d4[11])[_0x38d4[10]](_0x38d4[9],0);$(_0x38d4[12])[_0x38d4[10]](_0x38d4[9],0);$(_0x38d4[13])[_0x38d4[10]](_0x38d4[9],0);$(_0x38d4[14])[_0x38d4[10]](_0x38d4[9],0);$(_0x38d4[15])[_0x38d4[10]](_0x38d4[9],0);if(discrim[_0x38d4[1]]>1){$(_0x38d4[25])[_0x38d4[10]](_0x38d4[9],0);} ;$(_0x38d4[24])[_0x38d4[18]](_0x38d4[16],_0x38d4[19]);gl[_0x38d4[23]](shaderProgram[_0x38d4[22]],perspective);$(_0x38d4[21])[_0x38d4[18]](_0x38d4[16],_0x38d4[19]);} );if(discrim[_0x38d4[1]]>1){$(_0x38d4[29])[_0x38d4[28]](discrimname+_0x38d4[27]);$(_0x38d4[25])[_0x38d4[10]]({min:-60,max:60,slide:function (_0x6d39x17,_0x6d39x18){discrimvalue=_0x6d39x18[_0x38d4[9]]/10;oldspeed=speed;recalc_walker(gender,weight,spheres);} });} ;canvas=document[_0x38d4[31]](_0x38d4[30]);gl=canvas[_0x38d4[33]](_0x38d4[32]);if(gl){gl[_0x38d4[36]](0,0,canvas[_0x38d4[34]],canvas[_0x38d4[35]]);} else {alert(_0x38d4[37]);} ;gl[_0x38d4[38]](0.0,0.0,0.0,0.0);gl[_0x38d4[39]](1000.0);gl[_0x38d4[40]](gl.DEPTH_TEST);gl[_0x38d4[41]](gl.LEQUAL);vshader=gl[_0x38d4[42]](gl.VERTEX_SHADER);gl[_0x38d4[43]](vshader,vshadercode);gl[_0x38d4[44]](vshader);if(!gl[_0x38d4[45]](vshader,gl.COMPILE_STATUS)){alert(gl[_0x38d4[46]](vshader));} ;fshader=gl[_0x38d4[42]](gl.FRAGMENT_SHADER);gl[_0x38d4[43]](fshader,fshadercode);gl[_0x38d4[44]](fshader);if(!gl[_0x38d4[45]](fshader,gl.COMPILE_STATUS)){alert(gl[_0x38d4[46]](fshader));} ;shaderProgram=gl[_0x38d4[47]]();gl[_0x38d4[48]](shaderProgram,vshader);gl[_0x38d4[48]](shaderProgram,fshader);gl[_0x38d4[49]](shaderProgram);if(!gl[_0x38d4[50]](shaderProgram,gl.LINK_STATUS)){alert(_0x38d4[51]);} ;gl[_0x38d4[52]](shaderProgram);shaderProgram[_0x38d4[53]]=gl[_0x38d4[55]](shaderProgram,_0x38d4[54]);gl[_0x38d4[56]](shaderProgram[_0x38d4[53]]);shaderProgram[_0x38d4[57]]=gl[_0x38d4[55]](shaderProgram,_0x38d4[58]);gl[_0x38d4[56]](shaderProgram[_0x38d4[57]]);shaderProgram[_0x38d4[59]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[60]);shaderProgram[_0x38d4[62]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[62]);shaderProgram[_0x38d4[63]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[63]);shaderProgram[_0x38d4[64]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[64]);shaderProgram[_0x38d4[65]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[65]);shaderProgram[_0x38d4[66]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[66]);shaderProgram[_0x38d4[67]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[67]);shaderProgram[_0x38d4[22]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[22]);shaderProgram[_0x38d4[68]]=gl[_0x38d4[61]](shaderProgram,_0x38d4[68]);gl[_0x38d4[23]](shaderProgram[_0x38d4[22]],perspective);gl[_0x38d4[69]](shaderProgram[_0x38d4[63]],false, new Float32Array([0.38+zoom*0.38,0,0,0,0,0.38+zoom*0.038,0,0,0,0,0.38+zoom*0.38,0,0,0,0,1]));rarm= new Obj(gl,RUpperArmVertices,RUpperArmFaces,null,1);larm= new Obj(gl,LUpperArmVertices,LUpperArmFaces,null,1);lforearm= new Obj(gl,LForeArmVertices,LForeArmFaces,LForeArmNormals,1);rforearm= new Obj(gl,RForeArmVertices,RForeArmFaces,RForeArmNormals,1);rhand= new Obj(gl,rhandVertices,rhandFaces,null,1);lhand= new Obj(gl,lhandVertices,lhandFaces,null,1);head= new Obj(gl,head_c7_topVertices,head_c7_topFaces,null,1);thorax= new Obj(gl,thoraxabVertices,thoraxabFaces,thoraxabNormals,1);pelvis= new Obj(gl,pelvisVertices,pelvisFaces,null,1);rthigh= new Obj(gl,rthighVertices,rthighFaces,null,1);rshank= new Obj(gl,rshankVertices,rshankFaces,null,1);rfoot= new Obj(gl,rfootVertices,rfootFaces,null,1);lthigh= new Obj(gl,lthighVertices,lthighFaces,null,1);lshank= new Obj(gl,lshankVertices,lshankFaces,null,1);lfoot= new Obj(gl,lfootVertices,lfootFaces,null,1);sphereobj= new Obj(gl,sphereVertices,sphereFaces,null,1);starttime= new Date()[_0x38d4[8]]();recalc_walker(gender,weight,spheres);setInterval(_0x38d4[70],50);document[_0x38d4[71]]=captureMousePosition;document[_0x38d4[31]](_0x38d4[30])[_0x38d4[72]]=function (){mousedown=0;} ;document[_0x38d4[31]](_0x38d4[30])[_0x38d4[73]]=function (){mousedown=1;} ;document[_0x38d4[31]](_0x38d4[30])[_0x38d4[74]]=function (){mousedown=0;} ;} ;function captureMousePosition(_0x6d39x1a){if(mousedown){posX=-_0x6d39x1a[_0x38d4[75]];} ;} ;function draw(){var _0x6d39xd;var _0x6d39x14=Math[_0x38d4[7]]*2*0.120;speed=walker[135];gl[_0x38d4[78]](gl[_0x38d4[76]]|gl[_0x38d4[77]]);if(spheres==1){gl[_0x38d4[79]](shaderProgram[_0x38d4[68]], new Float32Array( new Array(1.0,1.0,1.0,1.0)));} else {gl[_0x38d4[79]](shaderProgram[_0x38d4[68]], new Float32Array( new Array(0.0,0.0,0.0,0.0)));} ;var _0x6d39x1c=rotateaxis((rotation+90)*3.1415926/180,0,0,1);gl[_0x38d4[69]](shaderProgram[_0x38d4[59]],false, new Float32Array([_0x6d39x1c[0][0],_0x6d39x1c[0][1],_0x6d39x1c[0][2],_0x6d39x1c[0][3],_0x6d39x1c[1][0],_0x6d39x1c[1][1],_0x6d39x1c[1][2],_0x6d39x1c[1][3],_0x6d39x1c[2][0],_0x6d39x1c[2][1],_0x6d39x1c[2][2],_0x6d39x1c[2][3],0,6.8,-950/400,1]));gl[_0x38d4[69]](shaderProgram[_0x38d4[63]],false, new Float32Array([3,0,0,0,0,2,0,0,0,0,3,0,0,0,0,1-0.35*zoom]));var _0x6d39x15=( new Date()[_0x38d4[8]]()-starttime)*_0x6d39x14/speed;var _0x6d39x1d= new Array();for(_0x6d39xd=0;_0x6d39xd<45;_0x6d39xd+=1){var _0x6d39x10=walker[_0x6d39xd+45]+Math[_0x38d4[6]](_0x6d39x15)*(walker[_0x6d39xd+45+136])+Math[_0x38d4[5]](_0x6d39x15)*(walker[_0x6d39xd+45+136*2])+Math[_0x38d4[6]](2*_0x6d39x15)*(walker[_0x6d39xd+45+136*3])+Math[_0x38d4[5]](2*_0x6d39x15)*(walker[_0x6d39xd+45+136*4]);var _0x6d39x11=walker[_0x6d39xd+90]+Math[_0x38d4[6]](_0x6d39x15)*(walker[_0x6d39xd+90+136])+Math[_0x38d4[5]](_0x6d39x15)*(walker[_0x6d39xd+90+136*2])+Math[_0x38d4[6]](2*_0x6d39x15)*(walker[_0x6d39xd+90+136*3])+Math[_0x38d4[5]](2*_0x6d39x15)*(walker[_0x6d39xd+90+136*4]);var _0x6d39xf=walker[_0x6d39xd]+Math[_0x38d4[6]](_0x6d39x15)*(walker[_0x6d39xd+136])+Math[_0x38d4[5]](_0x6d39x15)*(walker[_0x6d39xd+136*2])+Math[_0x38d4[6]](2*_0x6d39x15)*(walker[_0x6d39xd+136*3])+Math[_0x38d4[5]](2*_0x6d39x15)*(walker[_0x6d39xd+136*4]);_0x6d39x1d[_0x38d4[80]]( new Array(_0x6d39xf/scalingfactor,_0x6d39x10/scalingfactor,_0x6d39x11/scalingfactor));} ;for(_0x6d39xd=0;_0x6d39xd<45;_0x6d39xd+=3){gl[_0x38d4[81]](shaderProgram[_0x38d4[67]], new Float32Array(_0x6d39x1d[_0x6d39xd]));if(spheres==1){gl[_0x38d4[81]](shaderProgram[_0x38d4[64]], new Float32Array( new Array(1.0,0.0,0.0)));gl[_0x38d4[81]](shaderProgram[_0x38d4[66]], new Float32Array( new Array(0.0,0.0,1.0)));if(_0x6d39xd==3){gl[_0x38d4[81]](shaderProgram[_0x38d4[67]], new Float32Array( new Array((_0x6d39x1d[6][0]+_0x6d39x1d[15][0])/2,(_0x6d39x1d[6][1]+_0x6d39x1d[15][1])/2,(_0x6d39x1d[6][2]+_0x6d39x1d[15][2])/2)));} ;} else {gl[_0x38d4[81]](shaderProgram[_0x38d4[64]], new Float32Array( new Array(_0x6d39x1d[_0x6d39xd+2][0]-_0x6d39x1d[_0x6d39xd][0],_0x6d39x1d[_0x6d39xd+2][1]-_0x6d39x1d[_0x6d39xd][1],_0x6d39x1d[_0x6d39xd+2][2]-_0x6d39x1d[_0x6d39xd][2])));gl[_0x38d4[81]](shaderProgram[_0x38d4[66]], new Float32Array( new Array(_0x6d39x1d[_0x6d39xd+1][0]-_0x6d39x1d[_0x6d39xd][0],_0x6d39x1d[_0x6d39xd+1][1]-_0x6d39x1d[_0x6d39xd][1],_0x6d39x1d[_0x6d39xd+1][2]-_0x6d39x1d[_0x6d39xd][2])));} ;gl[_0x38d4[69]](shaderProgram[_0x38d4[62]],false, new Float32Array(bones[_0x6d39xd/3][_0x38d4[4]]));gl[_0x38d4[83]](gl.ARRAY_BUFFER,bones[_0x6d39xd/3][_0x38d4[3]][_0x38d4[82]]);gl[_0x38d4[85]](shaderProgram[_0x38d4[53]],bones[_0x6d39xd/3][_0x38d4[3]][_0x38d4[84]],gl.FLOAT,false,0,0);gl[_0x38d4[83]](gl.ARRAY_BUFFER,bones[_0x6d39xd/3][_0x38d4[3]][_0x38d4[86]]);gl[_0x38d4[85]](shaderProgram[_0x38d4[57]],bones[_0x6d39xd/3][_0x38d4[3]][_0x38d4[84]],gl.FLOAT,false,0,0);gl[_0x38d4[88]](gl.TRIANGLES,0,bones[_0x6d39xd/3][_0x38d4[3]][_0x38d4[87]]);} ;} ;
+</script>
+
+<body onLoad="init()" style="background: url('backgroundfull.png'); background-repeat: no-repeat; margin: 0px; padding: 0px;;">
+	<div id="controlpanel" style="font-weight: bold; font-size: 15pt; float: left; width: 340px; margin: 0px; padding: 20px;">
+		<div id="genderslider" style="width: 60%"></div>
+		<div style="width: 60%">
+			<div style="float: left; display: inline;">女性化</div><div style="float: Right; display: inline;">男性化</div><br/>
+		</div><br/>
+
+
+		<div id="weightslider" style="width: 60%"></div>
+		<div style="width: 60%">
+			<div style="float: left; display: inline;">胖</div><div style="float: Right; display: inline;">瘦</div><br/>
+		</div><br/>
+
+		<div id="nervousslider" style="width: 60%"></div>
+		<div style="width: 60%">
+			<div style="float: left; display: inline;">紧张</div><div style="float: Right; display: inline;">放松</div><br/>
+		</div><br/>
+		<div id="happyslider" style="width: 60%"></div>
+		<div style="width: 60%">
+			<div style="float: left; display: inline;">开心</div><div style="float: Right; display: inline;">伤心</div><br/>
+		</div>
+		<div style="float: left; position: absolute; left: 20px; top: 600px; width: 340px;">
+			Rotation<br/>
+			<div id="rotslider" style="width: 60%"></div><br/>
+			<!-- <table cellpadding=3 style="font-weight: bold; font-size: 15pt;"><tr valign=middle>
+			<td>Bones </td><td> <img width=30 id="dotsbutton" src="button_on.png"/></td></tr>
+			<tr valign=middle>
+			<td>Reset </td><td> <img width=30 id="resetbutton" src="button_off.png"/></td></tr></table> -->
+		</div>
+	</div>
+	<div style="float: left; width: 410px; margin: 0px; padding: 0px;">
+		<div id="output"></div>
+		<canvas id="webglcanvas" width=450 height=675�/>
+	</div>
+	<!-- <div style="position: relative; top: 630px; left: 30px; float: left; width: 200px; margin: 0px; padding: 0px;">
+		<a href="https://www.biomotionlab.ca/"><img src="logo.png" width=200px border=0/></a>
+	</div> -->
+</body>
